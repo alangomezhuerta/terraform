@@ -1,0 +1,74 @@
+terraform init
+terraform fmt - enalbes standarization
+terraform validate - will check and report errors within modules, etc.
+terraform apply
+terraform.tfstate  - file created once run the terraform apply
+terraform show - inspect the current terrafom state
+terraform state list - will give us a list or resources as addresses and resources IDs
+terraform destroy 
+
+aws_eip
+* Do not use network_interface to associate the EIP to aws_lb or aws_nat_gaeway resources
+	Instead, use the allocation_id available in those resources
+
+Implicit dependency by interpolation 
+	This is resolved by terraform , no matter what order you define the resources
+	i.e.:  instance = aws_instance.example.id
+	In this case instance is an argument passed to the aws_eip and hence terraform
+	assumes it should create the instance first, in order to get its ID, and then
+	associate it to the EIP
+
+Explicit dependency declaration
+	depends_on = [aws_s3_bucket.example]
+	NOTE:  S3 bucket names must be unique across _all_ AWS accounts, hence
+	       change this name 'example' to something else to avoid conflicts
+
+Provisioners
+	Provisioners used to initialize instances when they are created, this is like the
+	user data info to be passed to the instance tu run commands, scripts, etc.
+	local-exec does not need of any connection since it it to pull data from the instance
+	remote-exec needs of a connection block where credentials should be passed, but please
+	 avoid this method, even when this looks to be useful to setup some configuration 
+	 management tools like Chef, ansible, etc.   A better practice is to prepare images 
+	 with packer
+
+terraform taint resource.id  - This is to modify the state file and mark a resource as 
+	tainted, so in the next plan will be shown the resource will be destroyed since 
+	it is tainted
+	i.e.:  terraform taint aws_instance.example
+
+Variables
+	You can store variables in files with .tf extension with variable block or also 
+	you can store them in file *.tfvars wich don't need a block format but only the 
+	variable and its value, i.e.:  region = "us-east-2" and can be invoked in 
+	terraform command as:   
+	terraform apply -var-file="secrets.tfvars" -var-file="qa.tfvars"
+	
+Lists
+	# implicitly by using brackets [...]
+	variable "cidrs" { default = [] }
+
+	# explicitly
+	variable "cidrs" { type = list }
+
+List in a .tfvars file:
+	cidrs = [ "10.0.0.0/16", "10.1.0.0/16" ]
+
+Maps
+	Maps are a way to create variables that are lookup tables. i.e:
+
+	variable "amis" {
+	    type = "map"
+		default = {
+			"us-east-1" = "ami-b374d5a5"
+			"us-west-2" = "ami-4b32be2b"
+		 }
+	 }
+
+Maps in a tfvars file will look like:
+amis = {
+	"us-east-1" = "ami-abc123"
+	"us-west-2" = "ami-def456"
+}
+
+
